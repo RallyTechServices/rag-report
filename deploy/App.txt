@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CATS-RAG Report-0.1</title>
+    <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
+    <!--  Build Date: Fri May 25 2018 15:41:51 GMT-0700 (PDT) -->
+
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Fri May 25 2018 15:41:51 GMT-0700 (PDT)";
+        var ARTIFACT = "US2597";
+        var BUILDER  = "rajan08";
+        var CHECKSUM = 9539545579;
+    </script>
+
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
+    <!-- our highcharts (needed so that we can add patterns)
+    <script type="text/javascript" src="/apps/2.1/lib/analytics/analytics-all.js"></script>
+    -->
+
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+             
+/**
+ * A link that pops up a version dialog box
+ */
+
+Ext.define('Rally.technicalservices.InfoLink',{
+    extend: 'Rally.ui.dialog.Dialog',
+    alias: 'widget.tsinfolink',
+
+    /**
+     * @cfg {String} informationHtml
+     * Additional text to be displayed on the popup dialog (for exmaple,
+     * to add a description of the app's use or functionality)
+     */
+    informationHtml: null,
+
+    /**
+     *
+     * cfg {String} title
+     * The title for the dialog box
+     */
+    title: "Build Information",
+
+    defaults: { padding: 5, margin: 5 },
+
+    closable: true,
+
+    draggable: true,
+
+    autoShow: true,
+
+    width: 350,
+
+    informationalConfig: null,
+
+    showLog: false,
+    logger: null,
+
+    items: [
+        {xtype:'container', itemId:'information' },
+        {xtype:'container', itemId:'button_box'}
+    ],
+
+    initComponent: function() {
+        var id = Ext.id(this);
+        this.title =  "<span class='icon-help'> </span>" + this.title;
+        this.callParent(arguments);
+    },
+
+    _generateChecksum: function(string){
+        var chk = 0x12345678,
+            i;
+        string = string.replace(/var CHECKSUM = .*;/,"");
+        string = string.replace(/var BUILDER  = .*;/,"");
+        string = string.replace(/\s/g,"");  //Remove all whitespace from the string.
+
+        for (i = 0; i < string.length; i++) {
+            chk += (string.charCodeAt(i) * i);
+        }
+
+        return chk;
+    },
+
+    _checkChecksum: function(container) {
+        var deferred = Ext.create('Deft.Deferred');
+        var me = this;
+
+        Ext.Ajax.request({
+            url: document.URL,
+            params: {
+                id: 1
+            },
+            success: function (response) {
+                text = response.responseText;
+                if ( CHECKSUM ) {
+                    var stored_checksum = me._generateChecksum(text);
+                    if ( CHECKSUM !== stored_checksum ) {
+                        deferred.resolve(false);
+                        return;
+                    }
+                }
+                deferred.resolve(true);
+            }
+        });
+
+        return deferred.promise;
+    },
+
+    _addToContainer: function(container){
+        var config = Ext.apply({
+            xtype:'container',
+            height: 200,
+            overflowY: true
+        }, this.informationalConfig);
+
+        container.add(config);
+    },
+
+    afterRender: function() {
+        var app = Rally.getApp();
+
+        if ( !Ext.isEmpty( this.informationalConfig ) ) {
+            var container = this.down('#information');
+            this._addToContainer(container);
+        }
+
+        if ( this.showLog && this.logger ) {
+            this.down('#button_box').add({
+                xtype:'rallybutton',
+                text:'Show Log',
+                listeners: {
+                    scope: this,
+                    click: function() {
+                        this.logger.displayLog();
+                    }
+                }
+            });
+        }
+
+        if (! app.isExternal() ) {
+            this._checkChecksum(app).then({
+                scope: this,
+                success: function(result){
+                    if ( !result ) {
+                        this.addDocked({
+                            xtype:'container',
+                            cls: 'build-info',
+                            dock: 'bottom',
+                            padding: 2,
+                            html:'<span class="icon-warning"> </span>Checksums do not match'
+                        });
+                    }
+                },
+                failure: function(msg){
+                    console.log("oops:",msg);
+                }
+            });
+        } else {
+            this.addDocked({
+                xtype:'container',
+                cls: 'build-info',
+                padding: 2,
+                dock: 'bottom',
+                html:'... Running externally'
+            });
+        }
+        this.callParent(arguments);
+    },
+
+    beforeRender: function() {
+        var me = this;
+        this.callParent(arguments);
+
+        if (this.informationHtml) {
+            this.addDocked({
+                xtype: 'component',
+                componentCls: 'intro-panel',
+                padding: 2,
+                html: this.informationHtml,
+                dock: 'bottom'
+            });
+        }
+
+        this.addDocked({
+            xtype:'container',
+            cls: 'build-info',
+            padding: 2,
+            dock:'bottom',
+            html:"This app was created by the CA AC Technical Services Team."
+        });
+
+        if ( APP_BUILD_DATE ) {
+            var build_html = Ext.String.format("Built on: {0} <br/>Built by: {1}",
+                APP_BUILD_DATE,
+                BUILDER);
+
+            if ( ARTIFACT ) {
+                build_html = build_html + "<br/>Source artifact: " + ARTIFACT;
+            }
+
+            this.addDocked({
+                xtype:'container',
+                cls: 'build-info',
+                padding: 2,
+                dock: 'top',
+                html: build_html
+            });
+        }
+    }
+});
+
+/*
+ * originally written for when we supported older versions of IE that wouldn't
+ * deal with console.log.
+ *
+ * Now allows for saving log.
+ */
+Ext.define('CArABU.technicalservices.Logger',{
+
+    saveForLater: false,
+    saveLines: 100,
+    logArray: [],
+
+    constructor: function(config){
+        Ext.apply(this,config);
+    },
+
+    setSaveForLater: function(saveme){
+        this.saveForLater = saveme;
+    },
+
+    log: function(args){
+        var timestamp = "[ " + Ext.util.Format.date(new Date(), "Y-m-d H:i:s.u") + " ]";
+
+        var output_args = [];
+        output_args = Ext.Array.push(output_args,[timestamp]);
+        output_args = Ext.Array.push(output_args, Ext.Array.slice(arguments,0));
+
+        if ( this.saveForLater ) {
+            if ( !this.logArray) {
+                this.logArray = [];
+            }
+            this.logArray.push(output_args.join(' '));
+
+            if ( this.logArray.length > this.saveLines ) {
+                this.logArray.shift();
+            }
+        }
+
+        window.console && console.log.apply(console,output_args);
+    },
+
+    getLogText: function() {
+        if ( ! this.logArray || this.logArray.length === 0 ) { return "-- no log --"; }
+        return this.logArray.join('<br/>');
+    } ,
+
+    displayLog: function() {
+        var text = this.getLogText();
+
+        this.popup = Ext.create('Rally.ui.dialog.Dialog', {
+            width      : Ext.getBody().getWidth() - 20,
+            height     : Ext.getBody().getHeight() - 20,
+            closable   : true,
+            title      : 'Log',
+            autoShow   : true,
+            layout     : 'border',
+            defaults   : {
+                layout : 'fit',
+                width  : '50%',
+                border : false
+            },
+            items: [{
+                region : 'center',
+                xtype: 'container',
+                html: text,
+                autoScroll: true
+            }]
+        });
+    }
+});
+
+Ext.define('TSUtilities', {
+
+    singleton: true,
+
+    loadWsapiRecords: function(config){
+        var deferred = Ext.create('Deft.Deferred');
+        var default_config = {
+            model: 'Defect',
+            fetch: ['ObjectID']
+        };
+        Ext.create('Rally.data.wsapi.Store', Ext.Object.merge(default_config,config)).load({
+            callback : function(records, operation, successful) {
+                if (successful){
+                    deferred.resolve(records);
+                } else {
+                    console.error("Failed: ", operation);
+                    deferred.reject('Problem loading: ' + operation.error.errors.join('. '));
+                }
+            }
+        });
+        return deferred.promise;
+    },
+
+    loadAStoreWithAPromise: function(model_name, model_fields){
+        var deferred = Ext.create('Deft.Deferred');
+
+        Ext.create('Rally.data.wsapi.Store', {
+            model: model_name,
+            fetch: model_fields
+        }).load({
+            callback : function(records, operation, successful) {
+                if (successful){
+                    deferred.resolve(this);
+                } else {
+                    console.error("Failed: ", operation);
+                    deferred.reject('Problem loading: ' + operation.error.errors.join('. '));
+                }
+            }
+        });
+        return deferred.promise;
+    }
+});
+
+Ext.define("CArABU.app.TSApp", {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    logger: new CArABU.technicalservices.Logger(),
+    // defaults: { margin: 10 },
+    // layout: 'border',
+
+    items: [
+        {xtype: 'container', itemId: 'selector_box', layout: 'hbox'},
+        {xtype: 'container', itemId: 'display_box' }
+    ],
+
+    integrationHeaders : {
+        name : "CArABU.app.TSApp"
+    },
+
+    launch: function() {
+        var me = this;
+        //this.setLoading("Loading stuff...");
+
+        me.logger.setSaveForLater(me.getSetting('saveLog'));
+
+        me.down('#selector_box').add({            
+            xtype: 'rallyreleasecombobox',
+            listeners: {
+                scope: me,
+                change: function(cb) {
+                    me._updateData(cb.getRecord());
+                }
+            }
+        });
+
+        // Deft.Chain.sequence([
+        //     function() {
+        //         return TSUtilities.loadAStoreWithAPromise('Defect',['Name','State']);
+        //     },
+        //     function() {
+        //         return TSUtilities.loadWsapiRecords({
+        //             model:'Defect',
+        //             fetch: ['Name','State']
+        //         });
+        //     }
+        // ]).then({
+        //     scope: this,
+        //     success: function(results) {
+        //         var store = results[0];
+        //         var defects = results[1];
+        //         var field_names = ['Name','State'];
+
+        //         this._displayGridGivenStore(store,field_names);
+        //         this._displayGridGivenRecords(defects,field_names);
+        //     },
+        //     failure: function(error_message){
+        //         alert(error_message);
+        //     }
+        // }).always(function() {
+        //     me.setLoading(false);
+        // });
+    },
+
+
+    _updateData: function(release){
+        console.log(release);
+        var me = this;
+        /*
+           var epics = {'MyNYL' : {
+                            'Name': 'MyNYL',
+                            'MBI': [{
+                                'Name':'MBI Test1',
+                                'DeployDate': '1/1/19',
+                                'RagColor': 'green'
+                            },{
+                                'Name':'MBI Test2',
+                                'DeployDate': '1/2/19',
+                                'RagColor': 'red'
+                            }],
+                            'PerfCommentary' : 'Rich text'
+                       },
+                       {
+                
+                       }
+                       };
+        */
+        var epics = [];
+        TSUtilities.loadWsapiRecords({
+                    model:'PortfolioItem/MBI',
+                    fetch: ['Name','Parent','PlannedEndDate','Children','Release','Notes','PercentDoneByStoryCount','ActualStartDate','PlannedStartDate','ActualEndDate','PlannedEndDate'],
+                    filters: [{property:'Children.Release.Name',value:release.get('Name')}]
+                }).then({
+                    scope: me,
+                    success: function(results){
+                        console.log(results);
+                        // Ext.Array.each(results,function(mbi){
+                        //     if(mbi.get('Parent')){
+                        //         if(epics[mbi.get('Parent').Name]){
+                        //             epics[mbi.get('Parent').Name].MBI.push({
+                        //                 'Name': mbi.get('Name'),
+                        //                 'DeployDate': mbi.get('PlannedEndDate'),
+                        //                 'RagColor': me._getRAGColor(mbi)                                        
+                        //             })
+                        //         }else{
+                        //             epics[mbi.get('Parent').Name] = {
+                        //                 'Name' : mbi.get('Parent').Name,
+                        //                 'MBI': [{
+                        //                     'Name': mbi.get('Name'),
+                        //                     'DeployDate': mbi.get('PlannedEndDate'),
+                        //                     'RagColor': me._getRAGColor(mbi)
+                        //                 }],
+                        //                 'PerfCommentary' : mbi.get('Parent').c_PerfCommentary
+                        //             }                                       
+                        //         }                                
+                        //     }
+                        // });
+                        // console.log(epics);
+
+                        Ext.Array.each(results,function(mbi){
+                            if(mbi.get('Parent')){
+                                epics.push({
+                                    'EpicName' : mbi.get('Parent').Name,
+                                    'Name': mbi.get('Name'),
+                                    'DeployDate': mbi.get('PlannedEndDate'),
+                                    'RagColor': me._getRAGColor(mbi),
+                                    'PerfCommentary' : mbi.get('Parent').Notes
+                                });                                    
+                            }
+                        });
+
+                        me._renderReport(epics,release);
+                    }
+                });
+    },
+
+    _renderReport:function(epics,release){
+        me = this;
+        var data = [];
+
+        // _.each(epics,function(val,key){
+        //     data.push({
+        //         html: val.Name,
+        //         rowspan: val.MBI.length
+        //     })
+        //     _.each(val.MBI, function(mbi){
+        //         data.push({
+        //             html: mbi.RagColor
+        //         });
+        //         data.push({
+        //             html: mbi.Name
+        //         });
+        //         data.push({
+        //             html: mbi.DeployDate
+        //         });
+        //     })
+        //     data.push({
+        //         html: val.PerfCommentary || 'NA'
+        //     });            
+        // })
+
+
+        var store = Ext.create('Rally.data.custom.Store', {
+            data: epics,
+            pageSize: 2000
+        });
+
+        me.down('#display_box').removeAll();
+        me.down('#display_box').add({
+                            xtype                : 'rallygrid',
+                            itemId               : 'reportGrid',
+                            title: 'Service Experience ' + release.get('Name') ,
+                            sortableColumns      : true,
+                            showRowActionsColumn : false,
+                            showPagingToolbar    : false,
+                            columnCfgs           : me._getColumns(),
+                            store : store
+                        })
+
+
+    },
+
+    //https://help.rallydev.com/track-portfolio-items#coloralg
+    _getRAGColor(pi){
+        
+        // #  Inputs:
+        // #    percentComplete (real)
+        // #    startDate (days since the epoch or date type where
+        // #      Tomorrow()-Today() = 1.0 (real))
+        // #    endDate (same type as startDate)
+        // #    asOfDate (same type as startDate) - Most often today. The naming of 
+        // #      this variable supports the idea that you may want to look
+        // #      at the report as-of a certain date. All A2.0 reports will
+        // #      support printing any report as-of a certain timestamp.
+        // #    acceptanceStartDelay (real representing days) - delay before any
+        // #      any movement off of 0% complete is expected
+        // #    warningDelay (real representing days) - width of yellow
+        // #    inProgress (boolean)
+
+        // #  Colors:
+        // #    Red - Late
+        // #    Green - On Track
+        // #    Yellow - At Risk
+        // #    White - Not Started
+        // #    Light Gray - Some Work Accepted Prior to Start Date
+        // #    Gray - Complete
+
+        // # Input parameters for Portfolio Items are calculated as below. 
+        // # They could be different for Epics
+        // asOfDay = <today>
+        // # percentDoneFieldName in the line below could be:
+        // #   PercentDoneByStoryCount or PercentDoneByStoryPlanEstimate
+        // Fetch : PercentDoneByStoryCount,ActualStartDate,PlannedStartDate,ActualEndDate,PlannedEndDate
+        var percentComplete = 100 * pi.get('PercentDoneByStoryCount');
+
+        var asOfDay = new Date();
+        var startDate = asOfDay;
+
+        if (pi.get('ActualStartDate') != null){
+          startDate = pi.get('ActualStartDate');
+        }else if (pi.get('PlannedStartDate') != null){
+          startDate = pi.get('PlannedStartDate');
+        }
+
+        var endDate = asOfDay;
+        if (pi.get('PercentDoneByStoryCount') == 1){
+            if (pi.get('ActualEndDate') != null){
+              endDate = pi.get('ActualEndDate');
+            }else if (pi.get('PlannedEndDate') != null){
+              endDate = pi.get('PlannedEndDate');
+            }            
+              
+        }else{
+            if (pi.get('PlannedEndDate') != null){
+              endDate = pi.get('PlannedEndDate');
+            }         
+        }
+
+
+        // Defaults below currently hard-coded. Could later be provided by user.
+        var acceptanceStartDelay = (endDate - startDate) * 0.2
+        var warningDelay = (endDate - startDate) * 0.2
+        var inProgress = percentComplete > 0
+
+        if (asOfDay < startDate){
+          return 'white';
+        }
+           
+        if (asOfDay >= endDate){
+          if (percentComplete >= 100.0)
+            return 'gray';
+          else
+            return 'red';
+        }
+
+        var redXIntercept = startDate + acceptanceStartDelay + warningDelay;
+        var redSlope = 100.0 / (endDate - redXIntercept);
+        var redYIntercept = -1.0 * redXIntercept * redSlope
+        var redThreshold = redSlope * asOfDay + redYIntercept
+        if (percentComplete < redThreshold){
+          return 'red';
+        }
+          
+        var yellowXIntercept = startDate + acceptanceStartDelay;
+        var yellowSlope = 100 / (endDate - yellowXIntercept);
+        var yellowYIntercept = -1.0 * yellowXIntercept * yellowSlope;
+        var yellowThreshold = yellowSlope * asOfDay + yellowYIntercept;
+        if(percentComplete < yellowThreshold){
+          return 'yellow';
+        }
+          
+        return 'green';
+    },
+
+
+    _getColumns: function(){
+        return [
+            {
+                dataIndex : 'EpicName',
+                text: "Project",
+                flex: 2,
+                renderer  : function (value, meta, record, rowIndex, colIndex, store) {
+                 
+                console.log(!rowIndex);
+                var first = !rowIndex || value !== store.getAt(rowIndex - 1).get('EpicName'), 
+                  last = rowIndex >= store.getCount() - 1 || value !== store.getAt(rowIndex + 1).get('EpicName'); 
+
+                if (first) { 
+                  var i = rowIndex + 1, span = 1; 
+                  while (i < store.getCount() && value === store.getAt(i).get('EpicName')) { 
+                    i++; 
+                    span++; 
+                  } 
+                  var rowHeight = 20, padding = 6, 
+                    height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
+                  meta.style = 'height:' + height + ';line-height:' + height + ';'; 
+                  meta.tdAttr = 'rowspan = ' + span; 
+                } 
+                else{ 
+                  meta.tdAttr='style="display:none;"'; 
+                } 
+                return first ? value : ''; 
+              } 
+            },
+            {
+                dataIndex : 'RagColor',
+                text: "",
+                flex: 1,
+                renderer: function (value, meta, record, rowIndex, colIndex, store) {
+                    meta.tdAttr='style="background-color:'+value+';"'; 
+                }
+            },
+            {
+                dataIndex : 'Name',
+                text: "MBIs",
+                flex: 3
+            },
+            {
+                dataIndex : 'DeployDate',
+                text: "Deploy",
+                flex: 2
+            },
+            {
+                dataIndex : 'PerfCommentary',
+                text: "Performance Commentary",
+                flex: 4,
+                renderer  : function (value, meta, record, rowIndex, colIndex, store) {
+                 
+                    console.log(!rowIndex);
+                    var first = !rowIndex || value !== store.getAt(rowIndex - 1).get('PerfCommentary'), 
+                      last = rowIndex >= store.getCount() - 1 || value !== store.getAt(rowIndex + 1).get('PerfCommentary'); 
+
+                    if (first) { 
+                      var i = rowIndex + 1, span = 1; 
+                      while (i < store.getCount() && value === store.getAt(i).get('PerfCommentary')) { 
+                        i++; 
+                        span++; 
+                      } 
+                      var rowHeight = 20, padding = 6, 
+                        height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
+                      //meta.style = 'height:' + height + ';line-height:' + height + ';'; 
+                      meta.tdAttr = 'rowspan = ' + span; 
+                    } 
+                    else{ 
+                      meta.tdAttr='style="display:none;"'; 
+                    } 
+                    return first ? value : ''; 
+                  } 
+            }
+        ]
+    },
+
+    _displayGridGivenStore: function(store,field_names){
+        this.down('#grid_box1').add({
+            xtype: 'rallygrid',
+            store: store,
+            columnCfgs: field_names
+        });
+    },
+
+    _displayGridGivenRecords: function(records,field_names){
+        var store = Ext.create('Rally.data.custom.Store',{
+            data: records
+        });
+
+        var cols = Ext.Array.map(field_names, function(name){
+            return { dataIndex: name, text: name, flex: 1 };
+        });
+        this.down('#grid_box2').add({
+            xtype: 'rallygrid',
+            store: store,
+            columnCfgs: cols
+        });
+    },
+
+    getSettingsFields: function() {
+        var check_box_margins = '5 0 5 0';
+        return [{
+            name: 'saveLog',
+            xtype: 'rallycheckboxfield',
+            boxLabelAlign: 'after',
+            fieldLabel: '',
+            margin: check_box_margins,
+            boxLabel: 'Save Logging<br/><span style="color:#999999;"><i>Save last 100 lines of log for debugging.</i></span>'
+
+        }];
+    },
+
+    getOptions: function() {
+        var options = [
+            {
+                text: 'About...',
+                handler: this._launchInfo,
+                scope: this
+            }
+        ];
+
+        return options;
+    },
+
+    _launchInfo: function() {
+        if ( this.about_dialog ) { this.about_dialog.destroy(); }
+
+        this.about_dialog = Ext.create('Rally.technicalservices.InfoLink',{
+            showLog: this.getSetting('saveLog'),
+            logger: this.logger
+        });
+    },
+
+    isExternal: function(){
+        return typeof(this.getAppId()) == 'undefined';
+    }
+
+});
+
+
+               Rally.launchApp('CArABU.app.TSApp', {
+                   name: 'RAG Report'
+               });
+        });
+    </script>
+
+    <style type="text/css">
+
+.app {
+}
+.tsinfolink {
+    position:absolute;
+    right:0px;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    color: white;
+    background: #C0C0C0;
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 25px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+    </style>
+
+</head>
+<body></body>
+</html>
