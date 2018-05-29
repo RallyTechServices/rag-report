@@ -22,6 +22,8 @@ Ext.define("CArABU.app.TSApp", {
 
         me.down('#selector_box').add({            
             xtype: 'rallyreleasecombobox',
+            fieldLabel: 'Select a Release:',
+            margin: 10,
             listeners: {
                 scope: me,
                 change: function(cb) {
@@ -62,6 +64,7 @@ Ext.define("CArABU.app.TSApp", {
     _updateData: function(release){
         console.log(release);
         var me = this;
+        var perfField = me.getSetting('perfCommentaryField');
         /*
            var epics = {'MyNYL' : {
                             'Name': 'MyNYL',
@@ -84,7 +87,7 @@ Ext.define("CArABU.app.TSApp", {
         var epics = [];
         TSUtilities.loadWsapiRecords({
                     model:'PortfolioItem/MBI',
-                    fetch: ['Name','Parent','PlannedEndDate','Children','Release','Notes','PercentDoneByStoryCount','ActualStartDate','PlannedStartDate','ActualEndDate','PlannedEndDate'],
+                    fetch: ['Name','Parent','PlannedEndDate','Children','Release','Notes','PercentDoneByStoryCount','ActualStartDate','PlannedStartDate','ActualEndDate','PlannedEndDate',perfField],
                     filters: [{property:'Children.Release.Name',value:release.get('Name')}]
                 }).then({
                     scope: me,
@@ -120,7 +123,7 @@ Ext.define("CArABU.app.TSApp", {
                                     'Name': mbi.get('Name'),
                                     'DeployDate': mbi.get('PlannedEndDate'),
                                     'RagColor': me._getRAGColor(mbi),
-                                    'PerfCommentary' : mbi.get('Parent').Notes
+                                    'PerfCommentary' : mbi.get('Parent')[perfField]
                                 });                                    
                             }
                         });
@@ -154,7 +157,8 @@ Ext.define("CArABU.app.TSApp", {
         //         html: val.PerfCommentary || 'NA'
         //     });            
         // })
-
+        var asOfDay = new Date();
+        var table_title = "Service Experience " + release.get('Name') + " ( " + Ext.Date.format(release.get('ReleaseStartDate'),'m/d' ) + " - " + Ext.Date.format(release.get('ReleaseDate'),'m/d' ) + " ) as of " +  Ext.Date.format(asOfDay,'m/d/Y' );
 
         var store = Ext.create('Rally.data.custom.Store', {
             data: epics,
@@ -165,19 +169,20 @@ Ext.define("CArABU.app.TSApp", {
         me.down('#display_box').add({
                             xtype                : 'rallygrid',
                             itemId               : 'reportGrid',
-                            title: 'Service Experience ' + release.get('Name') ,
+                            title                : table_title, 
+                            titleAlign           : 'center',
                             sortableColumns      : true,
                             showRowActionsColumn : false,
                             showPagingToolbar    : false,
                             columnCfgs           : me._getColumns(),
                             store : store
-                        })
+                        });
 
 
     },
 
     //https://help.rallydev.com/track-portfolio-items#coloralg
-    _getRAGColor(pi){
+    _getRAGColor: function(pi){
         
         // #  Inputs:
         // #    percentComplete (real)
@@ -314,7 +319,10 @@ Ext.define("CArABU.app.TSApp", {
             {
                 dataIndex : 'DeployDate',
                 text: "Deploy",
-                flex: 2
+                flex: 2,
+                renderer: function(value){
+                    return value ? Ext.Date.format(value,'m/d' ) : '-';
+                }
             },
             {
                 dataIndex : 'PerfCommentary',
@@ -379,6 +387,18 @@ Ext.define("CArABU.app.TSApp", {
             margin: check_box_margins,
             boxLabel: 'Save Logging<br/><span style="color:#999999;"><i>Save last 100 lines of log for debugging.</i></span>'
 
+        },
+        {
+            name: 'perfCommentaryField',
+            itemId:'perfCommentaryField',
+            xtype: 'rallyfieldcombobox',
+            fieldLabel: 'Performance Commentary',
+            labelWidth: 125,
+            labelAlign: 'left',
+            minWidth: 200,
+            margin: '10 10 10 10',
+            model: 'PortfolioItem/Epic',
+            allowBlank: false
         }];
     },
 
