@@ -22,7 +22,7 @@ Ext.define("CArABU.app.TSApp", {
 
         me.down('#selector_box').add({            
             xtype: 'rallyreleasecombobox',
-            fieldLabel: 'Select a Release:',
+            fieldLabel: 'Select a PI:',
             margin: 10,
             listeners: {
                 scope: me,
@@ -85,11 +85,18 @@ Ext.define("CArABU.app.TSApp", {
                        };
         */
         var epics = [];
-        TSUtilities.loadWsapiRecords({
+        Deft.Promise.all([
+            TSUtilities.loadWsapiRecords({
                     model:'PortfolioItem/MBI',
-                    fetch: ['Name','Parent','PlannedEndDate','Children','Release','Notes','PercentDoneByStoryCount','ActualStartDate','PlannedStartDate','ActualEndDate','PlannedEndDate',perfField],
+                    fetch: ['Name','Parent','PlannedEndDate','Children','Release','Notes','PercentDoneByStoryCount','ActualStartDate','PlannedStartDate','ActualEndDate','PlannedEndDate',perfField,'Milestones'],
                     filters: [{property:'Children.Release.Name',value:release.get('Name')}]
-                }).then({
+                }),
+            TSUtilities.loadWsapiRecords({
+                    model:'Milestone',
+                    fetch: ['ObjectID','Name','TargetDate'],
+                    filters: [{property:'c_ProductionMilestone',value:true}]
+                })
+        ],me).then({
                     scope: me,
                     success: function(results){
                         console.log(results);
@@ -115,13 +122,28 @@ Ext.define("CArABU.app.TSApp", {
                         //     }
                         // });
                         // console.log(epics);
+                        var milestone_oids = [];
 
-                        Ext.Array.each(results,function(mbi){
+                        Ext.Array.each(results[1],function(milestone){
+                            milestone_oids.push(milestone.get('ObjectID'));
+                        });
+
+
+
+                        Ext.Array.each(results[0],function(mbi){
+                            //
+                            var milestones = mbi.get('Milestones') && mbi.get('Milestones')._tagsNameArray || [] ;
+                            var deploy_date = null;
+                            Ext.Array.each(milestones,function(m){
+                                if(Ext.Array.contains(milestone_oids,Rally.util.Ref.getOidFromRef(m))){
+                                    deploy_date = m.TargetDate;
+                                }
+                            })
                             if(mbi.get('Parent')){
                                 epics.push({
                                     'EpicName' : mbi.get('Parent').Name,
                                     'Name': mbi.get('Name'),
-                                    'DeployDate': mbi.get('PlannedEndDate'),
+                                    'DeployDate': deploy_date,
                                     'RagColor': me._getRAGColor(mbi),
                                     'PerfCommentary' : mbi.get('Parent')[perfField]
                                 });                                    
@@ -130,7 +152,7 @@ Ext.define("CArABU.app.TSApp", {
 
                         me._renderReport(epics,release);
                     }
-                });
+         });
     },
 
     _renderReport:function(epics,release){
@@ -158,7 +180,7 @@ Ext.define("CArABU.app.TSApp", {
         //     });            
         // })
         var asOfDay = new Date();
-        var table_title = "Service Experience " + release.get('Name') + " ( " + Ext.Date.format(release.get('ReleaseStartDate'),'m/d' ) + " - " + Ext.Date.format(release.get('ReleaseDate'),'m/d' ) + " ) as of " +  Ext.Date.format(asOfDay,'m/d/Y' );
+        var table_title = me.getContext().getProject().Name + " " + release.get('Name') + " ( " + Ext.Date.format(release.get('ReleaseStartDate'),'m/d' ) + " - " + Ext.Date.format(release.get('ReleaseDate'),'m/d' ) + " ) as of " +  Ext.Date.format(asOfDay,'m/d/Y' );
 
         var store = Ext.create('Rally.data.custom.Store', {
             data: epics,
@@ -249,7 +271,7 @@ Ext.define("CArABU.app.TSApp", {
            
         if (asOfDay >= endDate){
           if (percentComplete >= 100.0)
-            return 'gray';
+            return 'RoyalBlue';
           else
             return 'red';
         }
@@ -321,7 +343,7 @@ Ext.define("CArABU.app.TSApp", {
                 text: "Deploy",
                 flex: 2,
                 renderer: function(value){
-                    return value ? Ext.Date.format(value,'m/d' ) : '-';
+                    return value ? Ext.Date.format(Rally.util.DateTime.fromIsoString(value),'m/d' ) : '-';
                 }
             },
             {
@@ -330,7 +352,7 @@ Ext.define("CArABU.app.TSApp", {
                 flex: 4,
                 renderer  : function (value, meta, record, rowIndex, colIndex, store) {
                  
-                    console.log(!rowIndex);
+                    //console.log(!rowIndex);
                     var first = !rowIndex || value !== store.getAt(rowIndex - 1).get('PerfCommentary'), 
                       last = rowIndex >= store.getCount() - 1 || value !== store.getAt(rowIndex + 1).get('PerfCommentary'); 
 
