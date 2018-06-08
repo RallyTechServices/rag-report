@@ -2,8 +2,6 @@ Ext.define("CArABU.app.TSApp", {
     extend: 'Rally.app.App',
     componentCls: 'app',
     logger: new CArABU.technicalservices.Logger(),
-    // defaults: { margin: 10 },
-    // layout: 'border',
 
     items: [
         {xtype: 'container', itemId: 'selector_box', layout: 'hbox'},
@@ -31,33 +29,6 @@ Ext.define("CArABU.app.TSApp", {
                 }
             }
         });
-
-        // Deft.Chain.sequence([
-        //     function() {
-        //         return TSUtilities.loadAStoreWithAPromise('Defect',['Name','State']);
-        //     },
-        //     function() {
-        //         return TSUtilities.loadWsapiRecords({
-        //             model:'Defect',
-        //             fetch: ['Name','State']
-        //         });
-        //     }
-        // ]).then({
-        //     scope: this,
-        //     success: function(results) {
-        //         var store = results[0];
-        //         var defects = results[1];
-        //         var field_names = ['Name','State'];
-
-        //         this._displayGridGivenStore(store,field_names);
-        //         this._displayGridGivenRecords(defects,field_names);
-        //     },
-        //     failure: function(error_message){
-        //         alert(error_message);
-        //     }
-        // }).always(function() {
-        //     me.setLoading(false);
-        // });
     },
 
 
@@ -65,6 +36,7 @@ Ext.define("CArABU.app.TSApp", {
         console.log(release);
         var me = this;
         var perfField = me.getSetting('perfCommentaryField');
+        var milestoneField = me.getSetting('prodMilestone');
         /*
            var epics = {'MyNYL' : {
                             'Name': 'MyNYL',
@@ -94,34 +66,12 @@ Ext.define("CArABU.app.TSApp", {
             TSUtilities.loadWsapiRecords({
                     model:'Milestone',
                     fetch: ['ObjectID','Name','TargetDate'],
-                    filters: [{property:'c_ProductionRelease',value:true}]
+                    filters: [{property:milestoneField,value:true}]
                 })
         ],me).then({
                     scope: me,
                     success: function(results){
                         console.log(results);
-                        // Ext.Array.each(results,function(mbi){
-                        //     if(mbi.get('Parent')){
-                        //         if(epics[mbi.get('Parent').Name]){
-                        //             epics[mbi.get('Parent').Name].MBI.push({
-                        //                 'Name': mbi.get('Name'),
-                        //                 'DeployDate': mbi.get('PlannedEndDate'),
-                        //                 'RagColor': me._getRAGColor(mbi)                                        
-                        //             })
-                        //         }else{
-                        //             epics[mbi.get('Parent').Name] = {
-                        //                 'Name' : mbi.get('Parent').Name,
-                        //                 'MBI': [{
-                        //                     'Name': mbi.get('Name'),
-                        //                     'DeployDate': mbi.get('PlannedEndDate'),
-                        //                     'RagColor': me._getRAGColor(mbi)
-                        //                 }],
-                        //                 'PerfCommentary' : mbi.get('Parent').c_PerfCommentary
-                        //             }                                       
-                        //         }                                
-                        //     }
-                        // });
-                        // console.log(epics);
                         var milestone_oids = [];
 
                         Ext.Array.each(results[1],function(milestone){
@@ -159,26 +109,6 @@ Ext.define("CArABU.app.TSApp", {
         me = this;
         var data = [];
 
-        // _.each(epics,function(val,key){
-        //     data.push({
-        //         html: val.Name,
-        //         rowspan: val.MBI.length
-        //     })
-        //     _.each(val.MBI, function(mbi){
-        //         data.push({
-        //             html: mbi.RagColor
-        //         });
-        //         data.push({
-        //             html: mbi.Name
-        //         });
-        //         data.push({
-        //             html: mbi.DeployDate
-        //         });
-        //     })
-        //     data.push({
-        //         html: val.PerfCommentary || 'NA'
-        //     });            
-        // })
         var asOfDay = new Date();
         var table_title = me.getContext().getProject().Name + " " + release.get('Name') + " ( " + Ext.Date.format(release.get('ReleaseStartDate'),'m/d' ) + " - " + Ext.Date.format(release.get('ReleaseDate'),'m/d' ) + " ) as of " +  Ext.Date.format(asOfDay,'m/d/Y' );
 
@@ -314,7 +244,7 @@ Ext.define("CArABU.app.TSApp", {
                     i++; 
                     span++; 
                   } 
-                  var rowHeight = 20, padding = 6, 
+                  var rowHeight = 20, padding = 0, 
                     height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
                   meta.style = 'height:' + height + ';line-height:' + height + ';'; 
                   meta.tdAttr = 'rowspan = ' + span; 
@@ -362,7 +292,7 @@ Ext.define("CArABU.app.TSApp", {
                         i++; 
                         span++; 
                       } 
-                      var rowHeight = 20, padding = 6, 
+                      var rowHeight = 20, padding = 10, 
                         height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
                       //meta.style = 'height:' + height + ';line-height:' + height + ';'; 
                       meta.tdAttr = 'border-left-width: 1px;rowspan = ' + span; 
@@ -399,6 +329,14 @@ Ext.define("CArABU.app.TSApp", {
         });
     },
 
+    config: {
+        defaultSettings: {
+            saveLog: false,
+            perfCommentaryField: "c_RAGStatusCommentaryEpicOnly",
+            prodMilestone: "c_ProductionRelease"
+        }
+    },
+
     getSettingsFields: function() {
         var check_box_margins = '5 0 5 0';
         return [{
@@ -421,8 +359,21 @@ Ext.define("CArABU.app.TSApp", {
             margin: '10 10 10 10',
             model: 'PortfolioItem/Epic',
             allowBlank: false
+        },
+        {
+            name: 'prodMilestone',
+            itemId:'prodMilestone',
+            xtype: 'rallyfieldcombobox',
+            fieldLabel: 'Production Milestone',
+            labelWidth: 125,
+            labelAlign: 'left',
+            minWidth: 200,
+            margin: '10 10 10 10',
+            model: 'Milestone',
+            allowBlank: false
         }];
     },
+
 
     getOptions: function() {
         var options = [
