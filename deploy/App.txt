@@ -3,13 +3,13 @@
 <head>
     <title>CATS-RAG Report-0.1</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Mon Jun 04 2018 08:25:50 GMT-0700 (PDT) -->
+    <!--  Build Date: Fri Jun 08 2018 10:10:27 GMT-0700 (PDT) -->
 
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Jun 04 2018 08:25:50 GMT-0700 (PDT)";
+        var APP_BUILD_DATE = "Fri Jun 08 2018 10:10:27 GMT-0700 (PDT)";
         var ARTIFACT = "US2597";
         var BUILDER  = "rajan08";
-        var CHECKSUM = 11190404214;
+        var CHECKSUM = 11251287696;
     </script>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -421,7 +421,7 @@ Ext.define("CArABU.app.TSApp", {
             TSUtilities.loadWsapiRecords({
                     model:'Milestone',
                     fetch: ['ObjectID','Name','TargetDate'],
-                    filters: [{property:'c_ProductionMilestone',value:true}]
+                    filters: [{property:'c_ProductionRelease',value:true}]
                 })
         ],me).then({
                     scope: me,
@@ -692,10 +692,10 @@ Ext.define("CArABU.app.TSApp", {
                       var rowHeight = 20, padding = 6, 
                         height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
                       //meta.style = 'height:' + height + ';line-height:' + height + ';'; 
-                      meta.tdAttr = 'rowspan = ' + span; 
+                      meta.tdAttr = 'border-left-width: 1px;rowspan = ' + span; 
                     } 
                     else{ 
-                      meta.tdAttr='style="display:none;"'; 
+                      meta.tdAttr='border-left-width: 1px;style="display:none;"'; 
                     } 
                     return first ? value : ''; 
                   } 
