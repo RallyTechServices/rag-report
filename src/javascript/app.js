@@ -94,7 +94,7 @@ Ext.define("CArABU.app.TSApp", {
             TSUtilities.loadWsapiRecords({
                     model:'Milestone',
                     fetch: ['ObjectID','Name','TargetDate'],
-                    filters: [{property:'c_ProductionMilestone',value:true}]
+                    filters: [{property:'c_ProductionRelease',value:true}]
                 })
         ],me).then({
                     scope: me,
@@ -365,10 +365,10 @@ Ext.define("CArABU.app.TSApp", {
                       var rowHeight = 20, padding = 6, 
                         height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
                       //meta.style = 'height:' + height + ';line-height:' + height + ';'; 
-                      meta.tdAttr = 'rowspan = ' + span; 
+                      meta.tdAttr = 'border-left-width: 1px;rowspan = ' + span; 
                     } 
                     else{ 
-                      meta.tdAttr='style="display:none;"'; 
+                      meta.tdAttr='border-left-width: 1px;style="display:none;"'; 
                     } 
                     return first ? value : ''; 
                   } 
