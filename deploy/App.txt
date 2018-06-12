@@ -3,13 +3,13 @@
 <head>
     <title>CATS-RAG Report-0.1</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Fri Jun 08 2018 14:08:19 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue Jun 12 2018 13:20:12 GMT-0700 (PDT) -->
 
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Jun 08 2018 14:08:19 GMT-0700 (PDT)";
+        var APP_BUILD_DATE = "Tue Jun 12 2018 13:20:12 GMT-0700 (PDT)";
         var ARTIFACT = "US2597";
         var BUILDER  = "rajan08";
-        var CHECKSUM = 9889429180;
+        var CHECKSUM = 10291197848;
     </script>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -441,7 +441,8 @@ Ext.define("CArABU.app.TSApp", {
 
         var store = Ext.create('Rally.data.custom.Store', {
             data: epics,
-            pageSize: 2000
+            pageSize: 2000,
+            sorters: [{ property: 'EpicName' }],
         });
 
         me.down('#display_box').removeAll();
@@ -571,7 +572,7 @@ Ext.define("CArABU.app.TSApp", {
                     i++; 
                     span++; 
                   } 
-                  var rowHeight = 20, padding = 0, 
+                  var rowHeight = 25, padding = 0, 
                     height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
                   meta.style = 'height:' + height + ';line-height:' + height + ';'; 
                   meta.tdAttr = 'rowspan = ' + span; 
@@ -606,29 +607,32 @@ Ext.define("CArABU.app.TSApp", {
             {
                 dataIndex : 'PerfCommentary',
                 text: "Performance Commentary",
-                flex: 4,
+                flex: 4,                
                 renderer  : function (value, meta, record, rowIndex, colIndex, store) {
-                 
                     //console.log(!rowIndex);
                     var first = !rowIndex || value !== store.getAt(rowIndex - 1).get('PerfCommentary'), 
-                      last = rowIndex >= store.getCount() - 1 || value !== store.getAt(rowIndex + 1).get('PerfCommentary'); 
+                        last = rowIndex >= store.getCount() - 1 || value !== store.getAt(rowIndex + 1).get('PerfCommentary'); 
 
-                    if (first) { 
-                      var i = rowIndex + 1, span = 1; 
-                      while (i < store.getCount() && value === store.getAt(i).get('PerfCommentary')) { 
-                        i++; 
-                        span++; 
-                      } 
-                      var rowHeight = 20, padding = 10, 
-                        height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
-                      //meta.style = 'height:' + height + ';line-height:' + height + ';'; 
-                      meta.tdAttr = 'border-left-width: 1px;rowspan = ' + span; 
-                    } 
-                    else{ 
-                      meta.tdAttr='border-left-width: 1px;style="display:none;"'; 
-                    } 
+                        if (first) { 
+                          var i = rowIndex + 1, span = 1; 
+                          while (i < store.getCount() && value === store.getAt(i).get('PerfCommentary')) { 
+                            i++; 
+                            span++; 
+                          } 
+                          var rowHeight = 25, padding = 10, 
+                            height = (rowHeight * (i - rowIndex) - padding) + 'px'; 
+                          //meta.style = 'height:' + height + ';line-height:' + height + ';'; 
+                          //meta.tdAttr = 'rowspan = ' + span; 
+                          meta.tdAttr = 'rowspan = ' + span + ' style="border-left-color: grey;border-left-style: solid;border-left-width: thin;"'; 
+
+                        } 
+                        else{ 
+                          //meta.tdAttr='style="display:none;"'; 
+                          //meta.style = 'border-left-color: grey;border-left-style: solid;border-left-width: thin;';
+                          meta.tdAttr = 'style="display:none;border-left-color: grey;border-left-style: solid;border-left-width: thin;"'; 
+                        } 
                     return first ? value : ''; 
-                  } 
+                } 
             }
         ]
     },

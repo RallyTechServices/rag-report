@@ -88,7 +88,15 @@ module.exports = function(grunt) {
                     src: 'templates/auth-tpl.json',
                     dest: './auth.json',
                     engine: 'underscore'
+                },
+
+                sharepoint: {
+                    src: 'templates/sharepoint-tpl.html',
+                    dest: 'deploy/Sharepoint.html',
+                    engine: 'underscore',
+                    variables: config
                 }
+
         },
         watch: {
             files: ['test/fast/**/*-spec.js',config.js_files, config.css_files],
@@ -394,6 +402,10 @@ module.exports = function(grunt) {
 
     // a human readable .txt file
     grunt.registerTask('pretty', "Create the html for deployment",['template:prod','setPostBuildInfo:deploy/App.txt']);
+
+    // a human readable .txt file
+    grunt.registerTask('sharepoint', "Create the html for sharepoint",['template:sharepoint','setPostBuildInfo:deploy/Sharepoint.html']);
+
     //
     grunt.registerTask('debug', "Create an html file that can run in its own tab", ['template:dev']);
     //
