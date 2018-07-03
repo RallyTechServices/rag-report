@@ -36,6 +36,7 @@ Ext.define("CArABU.app.TSApp", {
         console.log(release);
         var me = this;
         var perfField = me.getSetting('perfCommentaryField');
+        var ragOverrideField = me.getSetting('ragOverrideField');
         var milestoneField = me.getSetting('prodMilestone');
         /*
            var epics = {'MyNYL' : {
@@ -60,7 +61,7 @@ Ext.define("CArABU.app.TSApp", {
         Deft.Promise.all([
             TSUtilities.loadWsapiRecords({
                     model:'PortfolioItem/MBI',
-                    fetch: ['Name','Parent','PlannedEndDate','Children','Release','Notes','PercentDoneByStoryCount','ActualStartDate','PlannedStartDate','ActualEndDate','PlannedEndDate',perfField,'Milestones'],
+                    fetch: ['Name','Parent','PlannedEndDate','Children','Release','Notes','PercentDoneByStoryCount','ActualStartDate','PlannedStartDate','ActualEndDate','PlannedEndDate',perfField,'Milestones',ragOverrideField],
                     filters: [{property:'Children.Release.Name',value:release.get('Name')}]
                 }),
             TSUtilities.loadWsapiRecords({
@@ -95,7 +96,9 @@ Ext.define("CArABU.app.TSApp", {
                                     'Name': mbi.get('Name'),
                                     'DeployDate': deploy_date,
                                     'RagColor': me._getRAGColor(mbi),
-                                    'PerfCommentary' : mbi.get('Parent')[perfField]
+                                    'PerfCommentary' : mbi.get('Parent')[perfField],
+                                    ragOverrideField : mbi.get(ragOverrideField),
+                                    'record':mbi
                                 });                                    
                             }
                         });
@@ -197,14 +200,14 @@ Ext.define("CArABU.app.TSApp", {
         var inProgress = percentComplete > 0
 
         if (asOfDay < startDate){
-          return 'white';
+          return 'White';
         }
            
         if (asOfDay >= endDate){
           if (percentComplete >= 100.0)
-            return 'RoyalBlue';
+            return 'Blue';
           else
-            return 'red';
+            return 'Red';
         }
 
         var redXIntercept = startDate + acceptanceStartDelay + warningDelay;
@@ -212,7 +215,7 @@ Ext.define("CArABU.app.TSApp", {
         var redYIntercept = -1.0 * redXIntercept * redSlope
         var redThreshold = redSlope * asOfDay + redYIntercept
         if (percentComplete < redThreshold){
-          return 'red';
+          return 'Red';
         }
           
         var yellowXIntercept = startDate + acceptanceStartDelay;
@@ -220,22 +223,25 @@ Ext.define("CArABU.app.TSApp", {
         var yellowYIntercept = -1.0 * yellowXIntercept * yellowSlope;
         var yellowThreshold = yellowSlope * asOfDay + yellowYIntercept;
         if(percentComplete < yellowThreshold){
-          return 'yellow';
+          return 'Yellow';
         }
           
-        return 'green';
+        return 'Green';
     },
 
 
     _getColumns: function(){
+        var me = this;
+        var ragOverrideField = me.getSetting('ragOverrideField');
+
         return [
             {
                 dataIndex : 'EpicName',
-                text: "Project",
+                text: "Project / EPIC",
                 flex: 2,
                 renderer  : function (value, meta, record, rowIndex, colIndex, store) {
                  
-                console.log(!rowIndex);
+                // console.log(!rowIndex);
                 var first = !rowIndex || value !== store.getAt(rowIndex - 1).get('EpicName'), 
                   last = rowIndex >= store.getCount() - 1 || value !== store.getAt(rowIndex + 1).get('EpicName'); 
 
@@ -258,21 +264,33 @@ Ext.define("CArABU.app.TSApp", {
             },
             {
                 dataIndex : 'RagColor',
-                text: "",
+                text: "Calculated <BR>Rag Status",
                 flex: 1,
                 renderer: function (value, meta, record, rowIndex, colIndex, store) {
-                    meta.tdAttr='style="background-color:'+value+';"'; 
+                    meta.tdAttr='style="font: bold 24px;color:'+value+';"'; 
+                    return value.slice(0,1)
                 }
             },
             {
+                dataIndex : ragOverrideField,
+                text: "RAG Override",
+                flex: 2
+            },            
+            {
                 dataIndex : 'Name',
                 text: "MBIs",
-                flex: 3
+                flex: 3,
+                renderer: function(value, meta, record, rowIndex, colIndex, store){
+                    return Rally.nav.DetailLink.getLink({
+                            record: record.get('record'),
+                            text: value
+                        });  
+                }
             },
             {
                 dataIndex : 'DeployDate',
                 text: "Deploy",
-                flex: 2,
+                flex: 1,
                 renderer: function(value){
                     return value ? Ext.Date.format(Rally.util.DateTime.fromIsoString(value),'m/d' ) : '-';
                 }
@@ -356,12 +374,24 @@ Ext.define("CArABU.app.TSApp", {
             name: 'perfCommentaryField',
             itemId:'perfCommentaryField',
             xtype: 'rallyfieldcombobox',
-            fieldLabel: 'Performance Commentary',
+            fieldLabel: 'Performance Commentary (Epic)',
             labelWidth: 125,
             labelAlign: 'left',
             minWidth: 200,
             margin: '10 10 10 10',
             model: 'PortfolioItem/Epic',
+            allowBlank: false
+        },        
+        {
+            name: 'ragOverrideField',
+            itemId:'ragOverrideField',
+            xtype: 'rallyfieldcombobox',
+            fieldLabel: 'RAG Override (MBI)',
+            labelWidth: 125,
+            labelAlign: 'left',
+            minWidth: 200,
+            margin: '10 10 10 10',
+            model: 'PortfolioItem/MBI',
             allowBlank: false
         },
         {
