@@ -97,7 +97,7 @@ Ext.define("CArABU.app.TSApp", {
                                     'DeployDate': deploy_date,
                                     'RagColor': me._getRAGColor(mbi),
                                     'PerfCommentary' : mbi.get('Parent')[perfField],
-                                    ragOverrideField : mbi.get(ragOverrideField),
+                                    'RagOverride' : mbi.get(ragOverrideField),
                                     'record':mbi
                                 });                                    
                             }
@@ -272,7 +272,7 @@ Ext.define("CArABU.app.TSApp", {
                 }
             },
             {
-                dataIndex : ragOverrideField,
+                dataIndex : 'RagOverride',
                 text: "RAG Override",
                 flex: 2
             },            
