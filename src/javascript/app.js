@@ -274,7 +274,12 @@ Ext.define("CArABU.app.TSApp", {
             {
                 dataIndex : 'RagOverride',
                 text: "RAG Override",
-                flex: 2
+                flex: 1,
+                renderer: function (value, meta, record, rowIndex, colIndex, store) {
+                    var value_arr = value && value.split(" ") || [];
+                    var color = value_arr.length > 0 && value_arr[0] || 'White';
+                    meta.tdAttr='style="background-color:'+color+';"'; 
+                }                
             },            
             {
                 dataIndex : 'Name',
