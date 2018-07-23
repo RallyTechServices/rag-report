@@ -20,6 +20,7 @@ Ext.define("CArABU.app.Colors", {
     purple : "#7832A5",  // $purple,
     pink : "#DA1884",   // $pink,
     grey7 : "#666",
+    white : "#f5f5f5",
 
     getColor:function(name){
         return this[name];
