@@ -278,7 +278,7 @@ Ext.define("CArABU.app.TSApp", {
                 renderer: function (value, meta, record, rowIndex, colIndex, store) {
                     var value_arr = value && value.split(" ") || [];
                     var color = value_arr.length > 0 && value_arr[0] || 'White';
-                    meta.tdAttr='style="background-color:'+color+';"'; 
+                    meta.tdAttr='style="background-color:'+CArABU.app.Colors.getColor(color.toLowerCase())+';"'; 
                 }                
             },            
             {
